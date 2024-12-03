@@ -91,11 +91,15 @@ async function main() {
         var followsCount = userProfile.data.followsCount ?? 0;
         if (followsCount >= _MaxFollowing)
         {
-            console.log("\tUNFOLLOWING: " + follows[i].handle + " for following " + followsCount + " people.");
-            //we have to call the Follow API again to get the URI.
             var userURI = userProfile.data.viewer?.following ?? "";
-            await agent.deleteFollow(userURI);
-            unfollows++;
+            if(userURI != "")
+            {
+                console.log("\tUNFOLLOWING: " + follows[i].handle + " for following " + followsCount + " people.");
+                await agent.deleteFollow(userURI);
+                unfollows++;
+            } else {
+                console.log("\tUNABLE TO FIND UNFOLLOW URI FOR: " + follows[i].handle);
+            }
             continue;
         }
 
@@ -103,11 +107,15 @@ async function main() {
         var postsCount = userProfile.data.postsCount ?? 0
         if(postsCount < _MinPosts)
         {
-            console.log("\tUNFOLLOWING: " + follows[i].handle + " because the've only made " + postsCount + " post(s).");
-            //we have to call the Follow API again to get the URI.
             var userURI = userProfile.data.viewer?.following ?? "";
-            await agent.deleteFollow(userURI);
-            unfollows++;
+            if(userURI != "")
+            {
+                console.log("\tUNFOLLOWING: " + follows[i].handle + " because the've only made " + postsCount + " post(s).");                
+                await agent.deleteFollow(userURI);
+                unfollows++;
+            } else {
+                console.log("\tUNABLE TO FIND UNFOLLOW URI FOR: " + follows[i].handle);
+            }
             continue;
         }
         followsDids.push(follows[i].did);

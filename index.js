@@ -109,21 +109,29 @@ function main() {
             var userProfile = yield agent.getProfile({ actor: follows[i].did });
             var followsCount = (_a = userProfile.data.followsCount) !== null && _a !== void 0 ? _a : 0;
             if (followsCount >= _MaxFollowing) {
-                console.log("\tUNFOLLOWING: " + follows[i].handle + " for following " + followsCount + " people.");
-                //we have to call the Follow API again to get the URI.
                 var userURI = (_c = (_b = userProfile.data.viewer) === null || _b === void 0 ? void 0 : _b.following) !== null && _c !== void 0 ? _c : "";
-                yield agent.deleteFollow(userURI);
-                unfollows++;
+                if (userURI != "") {
+                    console.log("\tUNFOLLOWING: " + follows[i].handle + " for following " + followsCount + " people.");
+                    yield agent.deleteFollow(userURI);
+                    unfollows++;
+                }
+                else {
+                    console.log("\tUNABLE TO FIND UNFOLLOW URI FOR: " + follows[i].handle);
+                }
                 continue;
             }
             //also check if they just haven't posted enough (As set by _MinPosts)
             var postsCount = (_d = userProfile.data.postsCount) !== null && _d !== void 0 ? _d : 0;
             if (postsCount < _MinPosts) {
-                console.log("\tUNFOLLOWING: " + follows[i].handle + " because the've only made " + postsCount + " post(s).");
-                //we have to call the Follow API again to get the URI.
                 var userURI = (_f = (_e = userProfile.data.viewer) === null || _e === void 0 ? void 0 : _e.following) !== null && _f !== void 0 ? _f : "";
-                yield agent.deleteFollow(userURI);
-                unfollows++;
+                if (userURI != "") {
+                    console.log("\tUNFOLLOWING: " + follows[i].handle + " because the've only made " + postsCount + " post(s).");
+                    yield agent.deleteFollow(userURI);
+                    unfollows++;
+                }
+                else {
+                    console.log("\tUNABLE TO FIND UNFOLLOW URI FOR: " + follows[i].handle);
+                }
                 continue;
             }
             followsDids.push(follows[i].did);
