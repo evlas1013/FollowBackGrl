@@ -33,7 +33,7 @@ async function getFollowers(inCursor: string)
     var followerRequest = await agent.getFollowers({actor: username, limit: 100, cursor : inCursor});
     var l_followers = followerRequest.data.followers;
 
-    if(followerRequest.data.cursor != null)
+    if(followerRequest.data.cursor != "" && followerRequest.data.cursor != null)
     {
         var newFollowers = await getFollowers(followerRequest.data.cursor);
         l_followers = [ ...l_followers, ...newFollowers];
@@ -48,7 +48,7 @@ async function getFollows(inCursor: string)
 
     var l_follows = followRequest.data.follows;
 
-    if(followRequest.data.cursor != null)
+    if(followRequest.data.cursor != "" && followRequest.data.cursor != null)
     {
         var newFollows = await getFollows(followRequest.data.cursor);
         l_follows = [ ...l_follows, ...newFollows];
