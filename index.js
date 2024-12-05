@@ -56,10 +56,16 @@ const agent = new api_1.BskyAgent({
 });
 function getFollowers(inCursor) {
     return __awaiter(this, void 0, void 0, function* () {
+        var followerRequest;
         //returns a list of all your current followers.
-        var followerRequest = yield agent.getFollowers({ actor: username, limit: 100, cursor: inCursor });
+        if (inCursor == "") {
+            followerRequest = yield agent.getFollowers({ actor: username, limit: 100 });
+        }
+        else {
+            followerRequest = yield agent.getFollowers({ actor: username, limit: 100, cursor: inCursor });
+        }
         var l_followers = followerRequest.data.followers;
-        if (followerRequest.data.cursor != null) {
+        if (followerRequest.data.cursor != "" && followerRequest.data.cursor != null) {
             var newFollowers = yield getFollowers(followerRequest.data.cursor);
             l_followers = [...l_followers, ...newFollowers];
         }
@@ -69,9 +75,15 @@ function getFollowers(inCursor) {
 function getFollows(inCursor) {
     return __awaiter(this, void 0, void 0, function* () {
         //returns a list of everyone you currently follow.
-        var followRequest = yield agent.getFollows({ actor: username, limit: 100, cursor: inCursor });
+        var followRequest;
+        if (inCursor == "") {
+            followRequest = yield agent.getFollows({ actor: username, limit: 100 });
+        }
+        else {
+            followRequest = yield agent.getFollows({ actor: username, limit: 100, cursor: inCursor });
+        }
         var l_follows = followRequest.data.follows;
-        if (followRequest.data.cursor != null) {
+        if (followRequest.data.cursor != "" && followRequest.data.cursor != null) {
             var newFollows = yield getFollows(followRequest.data.cursor);
             l_follows = [...l_follows, ...newFollows];
         }
@@ -199,7 +211,7 @@ function main() {
         if (unfollows > 0 && !silentMode) {
             console.log("\nPosting unfollows...");
             yield agent.post({
-                text: "@followbackgrl just automatically unfollowed " + unfollows + " user(s) for exceeding my " + _MaxFollowing + " follower limit.",
+                text: "@followbackgrl just automatically unfollowed " + unfollows + " user(s) for exceeding my " + _MaxFollowing + " follower limit or not posting at least " + _MinPosts + " original thoughts.",
                 facets: [
                     {
                         index: {
@@ -252,10 +264,11 @@ function main() {
             ]
         });
         console.log("\tPosted.");
+        console.log("Waiting until 17:00....");
     });
 }
 main();
 //Run this on a cron job
-const scheduleExpression = '0 */1 * * *'; // Run once every hour
+const scheduleExpression = '0 17 * * *'; // Run every day at 5pm
 const job = new cron_1.CronJob(scheduleExpression, main);
 job.start();

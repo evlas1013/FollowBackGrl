@@ -28,9 +28,16 @@ const agent = new BskyAgent({
 
 
 async function getFollowers(inCursor: string)
-{    
+{
+    var followerRequest;
     //returns a list of all your current followers.
-    var followerRequest = await agent.getFollowers({actor: username, limit: 100, cursor : inCursor});
+    if (inCursor == "")
+    {
+        followerRequest = await agent.getFollowers({actor: username, limit: 100});
+    } else {
+        followerRequest = await agent.getFollowers({actor: username, limit: 100, cursor : inCursor});
+    }
+    
     var l_followers = followerRequest.data.followers;
 
     if(followerRequest.data.cursor != "" && followerRequest.data.cursor != null)
@@ -44,7 +51,13 @@ async function getFollowers(inCursor: string)
 async function getFollows(inCursor: string)
 {    
     //returns a list of everyone you currently follow.
-    var followRequest = await agent.getFollows({actor: username, limit: 100, cursor : inCursor});
+    var followRequest;
+    if (inCursor == "")
+        {
+            followRequest = await agent.getFollows({actor: username, limit: 100});
+        } else {
+            followRequest = await agent.getFollows({actor: username, limit: 100, cursor : inCursor});
+        }
 
     var l_follows = followRequest.data.follows;
 
@@ -194,7 +207,7 @@ async function main() {
     {
         console.log("\nPosting unfollows...");
         await agent.post({
-            text: "@followbackgrl just automatically unfollowed " + unfollows + " user(s) for exceeding my " + _MaxFollowing + " follower limit.",
+            text: "@followbackgrl just automatically unfollowed " + unfollows + " user(s) for exceeding my " + _MaxFollowing + " follower limit or not posting at least " + _MinPosts + " original thoughts.",
             facets: [
                 {
                     index: {
@@ -217,7 +230,7 @@ async function main() {
     }
 
     //Now make FollowBackGrl post about it regardless of silent mode.
-    console.log("\nLogging in as FollowBackGrl...")
+    console.log("\nLogging in as FollowBackGrl...");
     await agent.login({identifier : "followbackgrl.bsky.social", password: pw});
 
     console.log("\tPosting user report...") 
@@ -246,7 +259,8 @@ async function main() {
                 }
             ]        
     });
-    console.log("\tPosted.")
+    console.log("\tPosted.");
+    console.log("Waiting until 17:00....");
     
 }
 
@@ -254,7 +268,7 @@ main();
 
 
 //Run this on a cron job
-const scheduleExpression = '0 */1 * * *'; // Run once every hour
+const scheduleExpression = '0 17 * * *'; // Run every day at 5pm
 const job = new CronJob(scheduleExpression, main);
 
 job.start();
