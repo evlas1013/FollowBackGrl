@@ -9,6 +9,9 @@ dotenv.config();
 var username = process.env.BLUESKY_USER ?? ""; //ex: testuser.bsky.social
 var pw = process.env.BLUESKY_PW ?? ""; //ex: myStrongPassword15%%
 
+var greatestFollows = 0;
+var greatestFollowsUser = "";
+
 //DONT GET LOST IN THE OCEAN!
 //UNFOLLOW ANYONE WHO'S FOLLOWING TOO MANY PEOPLE
 //THEY WON'T SEE YOUR POSTS ANYWAY
@@ -81,6 +84,7 @@ async function main() {
     console.log("\nLogging in...")
     await agent.login({identifier : username, password: pw});
     var userDID = (await agent.getProfile({actor: username})).data.did;
+    console.log("\nLogged in as " + username);
 
     //get a list of followers
    console.log("\nGetting followers...");
@@ -97,22 +101,32 @@ async function main() {
     console.log("Deleting people with too many follows while we're in this loop...");
     var followsDids: string[] = [];
     var unfollows = 0;
+    var blocks = 0;    
     for(var i = 0; i<follows.length; i++)
     {   
-        //while we're here, let's unfollow anyone who has too many followers. (as set by _MaxFollowing)        
+        //while we're here, let's block anyone who has too many followers. (as set by _MaxFollowing)        
         var userProfile = await agent.getProfile({actor: follows[i].did});
         var followsCount = userProfile.data.followsCount ?? 0;
-        if (followsCount >= _MaxFollowing)
+
+        //just for fun, let's keep track of who follows the most people. Some of these are outrageous...
+        if (followsCount > greatestFollows)
         {
-            var userURI = userProfile.data.viewer?.following ?? "";
-            if(userURI != "")
-            {
-                console.log("\tUNFOLLOWING: " + follows[i].handle + " for following " + followsCount + " people.");
-                await agent.deleteFollow(userURI);
-                unfollows++;
-            } else {
-                console.log("\tUNABLE TO FIND UNFOLLOW URI FOR: " + follows[i].handle);
-            }
+            greatestFollows = followsCount;
+            greatestFollowsUser = userProfile.data.handle;
+            console.log("\tNEW WINNER FOUND!!! " + userProfile.data.handle + "-" + followsCount);
+        }
+        if (followsCount >= _MaxFollowing)
+        {            
+            
+            console.log("\tBLOCKING: " + follows[i].handle + " for following " + followsCount + " people.");
+            await agent.app.bsky.graph.block.create(
+                {repo: userDID},
+                {
+                    subject: follows[i].did,
+                    createdAt: new Date().toISOString()
+                }
+            )
+            blocks++;
             continue;
         }
 
@@ -131,6 +145,7 @@ async function main() {
             }
             continue;
         }
+        //go ahead and follow them back
         followsDids.push(follows[i].did);
     }
     console.log("UNFOLLOWED: " + unfollows + " user(s) for following " + _MaxFollowing + " or more people.");
@@ -149,10 +164,25 @@ async function main() {
             var followsCount = userProfile.data.followsCount ?? 0;
             var postsCount = userProfile.data.postsCount ?? 0;
             //make sure they're not following too many people
+
+            if (followsCount > greatestFollows)
+            {
+                greatestFollows = followsCount;
+                greatestFollowsUser = userProfile.data.handle;
+                console.log("\tNEW WINNER FOUND!!! " + userProfile.data.handle + "-" + followsCount);
+            }
+
             if (followsCount >= _MaxFollowing)
             {
-                console.log("\tSKIPPED FOLLOWBACK FOR: " +followers[i].handle + " for following " + followsCount + " people" );
-                skippedFollows++;
+                console.log("\tBLOCKING: " + followers[i].handle + " for following " + followsCount + " people.");
+                await agent.app.bsky.graph.block.create(
+                {repo: userDID},
+                {
+                    subject: followers[i].did,
+                    createdAt: new Date().toISOString()
+                }
+                )
+                blocks++;
                 continue;
             }
 
@@ -239,10 +269,12 @@ async function main() {
             "\{\n"+
             "\tUser: "+username+"\n"+
             "\tMax Follows: "+_MaxFollowing+"\n"+
-            "\tMin Posts: "+_MinPosts+"\n"+            
+            "\tMin Posts: "+_MinPosts+"\n"+           
             "\tUnfollowed: "+unfollows+"\n"+
+            "\tBlocked: "+blocks+"\n"+
             "\tFollowed Back: "+newFollows+"\n"+
             "\tSkipped Followbacks: "+skippedFollows+"\n"+
+            "\tMost Follows: " + greatestFollowsUser + " (" + greatestFollows + ")\n"+
             "\}"+
             "\n"+
             "This user has decided not to follow anyone with more than " + _MaxFollowing + " follows or fewer than " + _MinPosts + " posts.",
